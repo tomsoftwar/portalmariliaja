@@ -1,1 +1,40 @@
-<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Contato | MARÍLIAJÁ</title><link rel="stylesheet" href="./assets/css/style.css"></head><body><header class="site-header"><div class="topline"><a class="brand" href="./">MARÍLIA<span>JÁ</span></a><span class="brand-tag">FALE COM A REDAÇÃO</span></div><nav class="nav"><a href="./">INÍCIO</a><a href="quem-somos.html">QUEM SOMOS</a><a href="privacidade.html">PRIVACIDADE</a><a href="termos.html">TERMOS DE USO</a><a href="tv.html">TV MARÍLIAJÁ</a></nav></header><main class="wrap page-wrap"><a class="back" href="./">← Voltar à capa</a><section class="panel contact-panel"><h1>Fale com o MARÍLIAJÁ</h1><p>Envie sugestões de pauta, informações ou dúvidas para a redação.</p><form action="https://formsubmit.co/portalmariliaja@gmail.com" method="POST"><input type="hidden" name="_subject" value="Mensagem recebida pelo portal MARÍLIAJÁ"><input type="hidden" name="_captcha" value="true"><input type="hidden" name="_template" value="table"><label>Nome *<input name="name" required maxlength="120"></label><label>E-mail *<input type="email" name="email" required maxlength="180"></label><label>Assunto<input name="_subject_extra" maxlength="160"></label><label>Mensagem *<textarea name="message" required rows="7" maxlength="5000"></textarea></label><button class="btn" type="submit">Enviar mensagem</button></form><p class="help">As mensagens serão encaminhadas para portalmariliaja@gmail.com após a ativação inicial do serviço de formulário por e-mail.</p></section></main><footer class="footer"><div class="wrap"><strong>MARÍLIAJÁ</strong><small>© MARÍLIAJÁ</small></div></footer></body></html>
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Contato | MARÍLIAJÁ</title><link rel="stylesheet" href="./assets/css/style.css"></head><body><header class="site-header"><div class="topline"><a class="brand" href="./">MARÍLIA<span>JÁ</span></a><span class="brand-tag">FALE COM A REDAÇÃO</span></div><nav class="nav"><a href="./">INÍCIO</a><a href="quem-somos.html">QUEM SOMOS</a><a href="privacidade.html">PRIVACIDADE</a><a href="termos.html">TERMOS DE USO</a><a href="tv.html">TV MARÍLIAJÁ</a></nav></header><main class="wrap page-wrap"><a class="back" href="./">← Voltar à capa</a><section class="panel contact-panel"><h1>Fale com o MARÍLIAJÁ</h1><p>Envie sugestões de pauta, informações ou dúvidas para a redação.</p><form id="contact-form" action="https://formsubmit.co/portalmariliaja@gmail.com" method="POST"><input type="hidden" name="_subject" value="Mensagem recebida pelo portal MARÍLIAJÁ"><input type="hidden" name="_captcha" value="false"><input type="hidden" name="_template" value="table"><label>Nome *<input name="name" required maxlength="120"></label><label>E-mail *<input type="email" name="email" required maxlength="180"></label><label>Assunto<input name="_subject_extra" maxlength="160"></label><label>Mensagem *<textarea name="message" required rows="7" maxlength="5000"></textarea></label><button class="btn" type="submit">Enviar mensagem</button></form><p id="form-status" class="help" role="status" aria-live="polite">As mensagens serão encaminhadas para portalmariliaja@gmail.com após a ativação inicial do serviço de formulário por e-mail.</p></section></main><footer class="footer"><div class="wrap"><strong>MARÍLIAJÁ</strong><small>© MARÍLIAJÁ</small></div></footer><script>
+(() => {
+  const form = document.getElementById("contact-form");
+  const status = document.getElementById("form-status");
+  const submitButton = form.querySelector('button[type="submit"]');
+
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    if (!form.reportValidity()) return;
+
+    const originalText = submitButton.textContent;
+    submitButton.disabled = true;
+    submitButton.textContent = "Enviando...";
+    status.textContent = "";
+
+    try {
+      const response = await fetch("https://formsubmit.co/ajax/portalmariliaja@gmail.com", {
+        method: "POST",
+        body: new FormData(form),
+        headers: { "Accept": "application/json" }
+      });
+      const result = await response.json();
+      if (!response.ok || result.success === false || result.success === "false") {
+        throw new Error("O serviço não confirmou o envio.");
+      }
+      alert("MENSAGEM ENVIADA COM SUCESSO!");
+      form.reset();
+      status.textContent = "Mensagem enviada com sucesso!";
+    } catch (error) {
+      alert("Não foi possível confirmar o envio da mensagem. Verifique sua conexão e tente novamente.");
+      status.textContent = "Falha no envio. Tente novamente.";
+    } finally {
+      submitButton.disabled = false;
+      submitButton.textContent = originalText;
+    }
+  });
+})();
+</script>
+
+</body></html>
