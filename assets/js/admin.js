@@ -128,6 +128,74 @@ async function loadCollaborators() {
   }
 }
 
+
+// Gerenciamento de anúncios: somente administradores podem cadastrar/editar/excluir.
+const adsPanel = $("#ads-panel");
+const adForm = $("#ad-form");
+const adMsg = $("#ad-message");
+const adEsc = esc;
+function adMessage(text, type = "") { if (adMsg) message(adMsg, text, type); }
+function validHttpUrl(value) {
+  try { const u = new URL(value); return u.protocol === "https:" || u.protocol === "http:"; }
+  catch { return false; }
+}
+function resetAdForm() {
+  if (!adForm) return;
+  adForm.reset(); $("#ad-id").value = ""; $("#ad-active").checked = true; adMessage("");
+}
+async function loadAdsAdmin() {
+  const box = $("#ads-list");
+  if (!box || !activeAdmin()) return;
+  box.innerHTML = '<div class="empty">Carregando anúncios...</div>';
+  try {
+    const snap = await getDocs(query(collection(db, "anuncios"), orderBy("updatedAt", "desc")));
+    if (!snap.docs.length) { box.innerHTML = '<div class="empty">Nenhum anúncio cadastrado.</div>'; return; }
+    box.innerHTML = snap.docs.map(d => {
+      const x = d.data();
+      return `<div class="admin-item"><div><strong>${adEsc(x.name || "Anunciante")}</strong><small>${adEsc(({top:"Topo",middle:"Meio",bottom:"Final"})[x.placement] || "Meio")} · ${x.active === true ? "Ativo" : "Inativo"}</small></div><div class="admin-item-actions"><button class="edit-btn" type="button" data-ad-edit="${adEsc(d.id)}">Editar</button><button class="delete-btn" type="button" data-ad-delete="${adEsc(d.id)}">Excluir</button></div></div>`;
+    }).join("");
+    box.querySelectorAll("[data-ad-edit]").forEach(b => b.onclick = async () => {
+      const s = await getDoc(doc(db, "anuncios", b.dataset.adEdit)); if (!s.exists()) return;
+      const x = s.data();
+      $("#ad-id").value = s.id; $("#ad-name").value = x.name || ""; $("#ad-image").value = x.imageUrl || "";
+      $("#ad-link").value = x.linkUrl || ""; $("#ad-placement").value = x.placement || "middle"; $("#ad-active").checked = x.active === true;
+      adForm.scrollIntoView({behavior:"smooth"}); adMessage("Editando anúncio. Salve para publicar as alterações.", "success");
+    });
+    box.querySelectorAll("[data-ad-delete]").forEach(b => b.onclick = async () => {
+      if (!confirm("Excluir este anúncio?")) return;
+      try { await deleteDoc(doc(db, "anuncios", b.dataset.adDelete)); await loadAdsAdmin(); adMessage("Anúncio excluído.", "success"); }
+      catch (err) { console.error(err); adMessage("Não foi possível excluir. Confira as regras do Firestore.", "error"); }
+    });
+  } catch (err) {
+    console.error(err);
+    box.innerHTML = '<div class="empty">Erro ao carregar anúncios. Confira as regras do Firestore para a coleção anuncios.</div>';
+  }
+}
+if (adForm) {
+  adForm.addEventListener("submit", async e => {
+    e.preventDefault();
+    if (!activeAdmin()) return adMessage("Somente administradores podem gerenciar anúncios.", "error");
+    const btn = adForm.querySelector('[type="submit"]'); btn.disabled = true; adMessage("Salvando anúncio...");
+    try {
+      const imageUrl = $("#ad-image").value.trim(), linkUrl = $("#ad-link").value.trim();
+      if (!validHttpUrl(imageUrl) || !validHttpUrl(linkUrl)) throw new Error("url");
+      const id = $("#ad-id").value || crypto.randomUUID();
+      await setDoc(doc(db, "anuncios", id), {
+        name: $("#ad-name").value.trim(), imageUrl, linkUrl, placement: $("#ad-placement").value,
+        active: $("#ad-active").checked, updatedAt: serverTimestamp(),
+        createdBy: currentUser.uid
+      }, {merge:true});
+      resetAdForm(); adMessage("Anúncio salvo. Ele poderá aparecer no portal conforme o local escolhido.", "success"); await loadAdsAdmin();
+    } catch (err) {
+      console.error(err);
+      adMessage(err.message === "url" ? "Informe URLs válidas começando por https:// ou http://." :
+        err.code === "permission-denied" ? "O Firebase recusou a gravação. É necessário permitir o gerenciamento da coleção anuncios nas regras do Firestore." :
+        "Não foi possível salvar o anúncio. Confira o Firebase.", "error");
+    } finally { btn.disabled = false; }
+  });
+  $("#ad-clear").addEventListener("click", resetAdForm);
+}
+
 onAuthStateChanged(auth, async user => {
   currentUser = user;
   currentProfile = null;
@@ -144,6 +212,7 @@ onAuthStateChanged(auth, async user => {
       return;
     }
     isAdmin = currentProfile.perfil === "admin";
+    if (adsPanel) adsPanel.classList.toggle("hidden", !isAdmin);
     loginPanel.classList.add("hidden"); editor.classList.remove("hidden");
     if (!isAdmin) {
       const collabPanel = $("#collaborators-panel");
@@ -156,6 +225,7 @@ onAuthStateChanged(auth, async user => {
       await loadCollaborators();
     }
     await loadAdminNews();
+    if (activeAdmin()) await loadAdsAdmin();
   } catch (err) {
     console.error(err);
     message(loginMsg, "Falha ao validar o usuário. Confira as regras do Firestore.", "error");
