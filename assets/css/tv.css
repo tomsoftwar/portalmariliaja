@@ -1,0 +1,9 @@
+/* Estilos exclusivos da TV MARÍLIAJÁ — não alteram o restante do portal. */
+.tv-home-layout{display:block!important}
+.tv-main-feature{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(240px,1fr);gap:22px;align-items:center;padding:18px;border:1px solid var(--line,#e5e5e5);background:#fff}
+.tv-main-feature iframe{display:block;width:100%;aspect-ratio:16/9;border:0;background:#111}
+.tv-main-copy h3{font-size:clamp(1.25rem,2.5vw,2rem);line-height:1.2;margin:8px 0}
+.tv-main-copy p{color:var(--muted,#666)}
+.tv-main-copy>a{color:var(--red,#d71920);font-weight:800;text-decoration:none}
+.tv-home-layout .tv-card iframe{width:100%;aspect-ratio:16/9;border:0}
+@media(max-width:700px){.tv-main-feature{grid-template-columns:1fr;gap:12px;padding:12px}}
