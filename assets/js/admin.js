@@ -214,6 +214,7 @@ onAuthStateChanged(auth, async user => {
     isAdmin = currentProfile.perfil === "admin";
     if (adsPanel) adsPanel.classList.toggle("hidden", !isAdmin);
     loginPanel.classList.add("hidden"); editor.classList.remove("hidden");
+    try { if (localStorage.getItem(draftStorageKey())) message(draftMsg, "Há um rascunho salvo neste navegador. Clique em ‘Recuperar rascunho’ para continuar.", "success"); } catch {}
     if (!isAdmin) {
       const collabPanel = $("#collaborators-panel");
       if (collabPanel) collabPanel.remove();
@@ -264,7 +265,87 @@ $("#insert-video").onclick = () => {
   } else alert("Link do YouTube não reconhecido.");
 };
 
-function resetForm() { form.reset(); $("#news-id").value = ""; content.innerHTML = ""; message(adminMsg, ""); }
+const draftMsg = $("#draft-message");
+let draftTimer = null;
+function draftStorageKey() {
+  return currentUser?.uid ? `mariliaja_news_draft_${currentUser.uid}` : "mariliaja_news_draft_guest";
+}
+function readEditorFields() {
+  return {
+    newsId: $("#news-id").value,
+    title: $("#title").value,
+    summary: $("#summary").value,
+    content: content.innerHTML,
+    category: $("#category").value,
+    imageUrl: $("#imageUrl").value,
+    imageCaption: $("#imageCaption").value,
+    videoUrl: $("#videoUrl").value,
+    featured: $("#featured").checked,
+    savedAt: new Date().toISOString()
+  };
+}
+function applyDraft(d) {
+  $("#news-id").value = d.newsId || "";
+  $("#title").value = d.title || "";
+  $("#summary").value = d.summary || "";
+  content.innerHTML = d.content || "";
+  $("#category").value = d.category || "Cidade";
+  $("#imageUrl").value = d.imageUrl || "";
+  $("#imageCaption").value = d.imageCaption || "";
+  $("#videoUrl").value = d.videoUrl || "";
+  $("#featured").checked = !!d.featured;
+}
+function saveDraft(showMessage = true) {
+  try {
+    const d = readEditorFields();
+    if (!d.title.trim() && !d.summary.trim() && !content.innerText.trim() && !d.imageUrl && !d.videoUrl) {
+      if (showMessage) message(draftMsg, "Digite algo antes de salvar o rascunho.", "error");
+      return false;
+    }
+    localStorage.setItem(draftStorageKey(), JSON.stringify(d));
+    if (showMessage) message(draftMsg, `Rascunho salvo neste navegador em ${new Date(d.savedAt).toLocaleString("pt-BR")}.`, "success");
+    return true;
+  } catch (err) {
+    console.error(err);
+    if (showMessage) message(draftMsg, "Não foi possível salvar o rascunho neste navegador.", "error");
+    return false;
+  }
+}
+function recoverDraft(showMessage = true) {
+  try {
+    const raw = localStorage.getItem(draftStorageKey());
+    if (!raw) {
+      if (showMessage) message(draftMsg, "Nenhum rascunho salvo foi encontrado neste navegador.", "error");
+      return false;
+    }
+    const d = JSON.parse(raw);
+    if (( $("#title").value.trim() || $("#summary").value.trim() || content.innerText.trim()) &&
+        !confirm("Recuperar o rascunho substituirá o conteúdo que está no editor. Deseja continuar?")) return false;
+    applyDraft(d);
+    if (showMessage) message(draftMsg, `Rascunho recuperado${d.savedAt ? " (salvo em " + new Date(d.savedAt).toLocaleString("pt-BR") + ")" : ""}.`, "success");
+    return true;
+  } catch (err) {
+    console.error(err);
+    if (showMessage) message(draftMsg, "O rascunho não pôde ser recuperado.", "error");
+    return false;
+  }
+}
+function scheduleDraftSave() {
+  clearTimeout(draftTimer);
+  draftTimer = setTimeout(() => saveDraft(false), 700);
+}
+["#title", "#summary", "#category", "#imageUrl", "#imageCaption", "#videoUrl", "#featured"].forEach(sel => {
+  const el = $(sel);
+  el.addEventListener("input", scheduleDraftSave);
+  el.addEventListener("change", scheduleDraftSave);
+});
+content.addEventListener("input", scheduleDraftSave);
+$("#save-draft").addEventListener("click", () => saveDraft(true));
+$("#load-draft").addEventListener("click", () => recoverDraft(true));
+function resetForm() {
+  form.reset(); $("#news-id").value = ""; content.innerHTML = ""; message(adminMsg, "");
+  message(draftMsg, "Formulário limpo. O rascunho salvo continua disponível para recuperação.");
+}
 $("#clear-form").addEventListener("click", resetForm);
 form.addEventListener("submit", async e => {
   e.preventDefault();
@@ -288,7 +369,8 @@ form.addEventListener("submit", async e => {
     else if (!old) payload.authorId = currentUser.uid;
     await setDoc(doc(db, "noticias", id), payload, { merge: true });
     message(adminMsg, "Conteúdo salvo no banco e disponível aos visitantes.", "success");
-    resetForm(); await loadAdminNews();
+    try { localStorage.removeItem(draftStorageKey()); } catch {}
+    resetForm(); message(draftMsg, "Notícia publicada. O rascunho deste editor foi removido.", "success"); await loadAdminNews();
   } catch (err) {
     console.error(err);
     message(adminMsg, err.message === "not owner" ? "Você só pode editar notícias publicadas por você." :
