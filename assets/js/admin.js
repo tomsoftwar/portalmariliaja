@@ -214,7 +214,7 @@ onAuthStateChanged(auth, async user => {
     isAdmin = currentProfile.perfil === "admin";
     if (adsPanel) adsPanel.classList.toggle("hidden", !isAdmin);
     loginPanel.classList.add("hidden"); editor.classList.remove("hidden");
-    try { if (localStorage.getItem(draftStorageKey())) message(draftMsg, "Há um rascunho salvo neste navegador. Clique em ‘Recuperar rascunho’ para continuar.", "success"); } catch {}
+    loadDraftsList().catch(console.error);
     if (!isAdmin) {
       const collabPanel = $("#collaborators-panel");
       if (collabPanel) collabPanel.remove();
@@ -295,44 +295,80 @@ function applyDraft(d) {
   $("#videoUrl").value = d.videoUrl || "";
   $("#featured").checked = !!d.featured;
 }
-function saveDraft(showMessage = true) {
+async function saveDraft(showMessage = true) {
   try {
-    const d = readEditorFields();
-    if (!d.title.trim() && !d.summary.trim() && !content.innerText.trim() && !d.imageUrl && !d.videoUrl) {
-      if (showMessage) message(draftMsg, "Digite algo antes de salvar o rascunho.", "error");
+    if (!currentUser || !currentProfile || currentProfile.ativo !== true) {
+      if (showMessage) message(draftMsg, "Entre no painel para salvar o rascunho.", "error");
       return false;
     }
-    localStorage.setItem(draftStorageKey(), JSON.stringify(d));
-    if (showMessage) message(draftMsg, `Rascunho salvo neste navegador em ${new Date(d.savedAt).toLocaleString("pt-BR")}.`, "success");
+    const d = readEditorFields();
+    if (!d.title.trim() && !d.summary.trim() && !content.innerText.trim() && !d.imageUrl && !d.videoUrl) {
+      if (showMessage) message(draftMsg, "Preencha ao menos o título, resumo ou conteúdo antes de salvar.", "error");
+      return false;
+    }
+    const draftId = d.newsId || ("novo_" + currentUser.uid);
+    await setDoc(doc(db, "rascunhos", draftId), {
+      ...d, authorId: currentUser.uid, authorEmail: currentUser.email || "",
+      updatedAt: serverTimestamp(), savedAt: new Date().toISOString()
+    }, { merge: true });
+    try { localStorage.setItem(draftStorageKey(), JSON.stringify(d)); } catch {}
+    if (showMessage) message(draftMsg, "Rascunho salvo no painel. A notícia ainda NÃO foi publicada.", "success");
+    await loadDraftsList();
     return true;
   } catch (err) {
     console.error(err);
-    if (showMessage) message(draftMsg, "Não foi possível salvar o rascunho neste navegador.", "error");
+    if (showMessage) message(draftMsg, err.code === "permission-denied" ? "O Firebase bloqueou o rascunho. Atualize as regras do Firestore para permitir a coleção rascunhos." : "Não foi possível salvar o rascunho no painel.", "error");
     return false;
   }
 }
-function recoverDraft(showMessage = true) {
+async function recoverDraft(showMessage = true, draftId = null) {
   try {
-    const raw = localStorage.getItem(draftStorageKey());
-    if (!raw) {
-      if (showMessage) message(draftMsg, "Nenhum rascunho salvo foi encontrado neste navegador.", "error");
+    let d = null;
+    if (draftId) {
+      const snap = await getDoc(doc(db, "rascunhos", draftId));
+      if (snap.exists()) d = snap.data();
+    } else {
+      const snap = await getDocs(query(collection(db, "rascunhos"), orderBy("updatedAt", "desc")));
+      const mine = snap.docs.find(x => activeAdmin() || x.data().authorId === currentUser?.uid);
+      if (mine) { draftId = mine.id; d = mine.data(); }
+    }
+    if (!d) {
+      try { const raw = localStorage.getItem(draftStorageKey()); if (raw) d = JSON.parse(raw); } catch {}
+    }
+    if (!d) {
+      if (showMessage) message(draftMsg, "Nenhum rascunho foi encontrado no painel.", "error");
       return false;
     }
-    const d = JSON.parse(raw);
-    if (( $("#title").value.trim() || $("#summary").value.trim() || content.innerText.trim()) &&
+    if (($("#title").value.trim() || $("#summary").value.trim() || content.innerText.trim()) &&
         !confirm("Recuperar o rascunho substituirá o conteúdo que está no editor. Deseja continuar?")) return false;
     applyDraft(d);
-    if (showMessage) message(draftMsg, `Rascunho recuperado${d.savedAt ? " (salvo em " + new Date(d.savedAt).toLocaleString("pt-BR") + ")" : ""}.`, "success");
+    if (showMessage) message(draftMsg, "Rascunho recuperado. Você pode continuar editando e publicar quando estiver pronto.", "success");
     return true;
   } catch (err) {
     console.error(err);
-    if (showMessage) message(draftMsg, "O rascunho não pôde ser recuperado.", "error");
+    if (showMessage) message(draftMsg, err.code === "permission-denied" ? "O Firebase bloqueou a leitura dos rascunhos. Confira as regras do Firestore." : "Não foi possível recuperar o rascunho.", "error");
     return false;
+  }
+}
+async function loadDraftsList() {
+  const old = $("#drafts-list");
+  if (!old || !currentUser) return;
+  try {
+    const snap = await getDocs(query(collection(db, "rascunhos"), orderBy("updatedAt", "desc")));
+    const docs = snap.docs.filter(x => activeAdmin() || x.data().authorId === currentUser.uid);
+    old.innerHTML = docs.length ? docs.map(x => {
+      const d=x.data();
+      return `<div class="admin-news-item"><div><strong>${esc(d.title || "Rascunho sem título")}</strong><p>${esc(d.category || "Geral")} · Não publicado</p></div><button type="button" class="btn btn-light" data-draft-load="${esc(x.id)}">Continuar edição</button></div>`;
+    }).join("") : '<p class="help">Nenhum rascunho salvo no painel ainda.</p>';
+    old.querySelectorAll("[data-draft-load]").forEach(b => b.addEventListener("click", () => recoverDraft(true, b.dataset.draftLoad)));
+  } catch(err) {
+    console.error(err);
+    old.innerHTML = '<p class="help">Não foi possível carregar a lista de rascunhos. Confira as regras do Firestore.</p>';
   }
 }
 function scheduleDraftSave() {
   clearTimeout(draftTimer);
-  draftTimer = setTimeout(() => saveDraft(false), 700);
+  draftTimer = setTimeout(() => { try { localStorage.setItem(draftStorageKey(), JSON.stringify(readEditorFields())); } catch {} }, 700);
 }
 ["#title", "#summary", "#category", "#imageUrl", "#imageCaption", "#videoUrl", "#featured"].forEach(sel => {
   const el = $(sel);
