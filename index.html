@@ -15,21 +15,31 @@
 <div class="ad-slot ad-bottom"><span>PUBLICIDADE</span><strong>ESPAÇO PARA ANÚNCIO</strong></div>
 </main><footer class="footer"><div class="wrap"><strong>MARÍLIAJÁ</strong><span>O Portal de Notícias de Marília e Região</span><div class="footer-links"><a href="quem-somos.html">Quem somos</a><a href="privacidade.html">Políticas de privacidade</a><a href="termos.html">Termos de uso</a><a href="contato.html">Contato</a><a href="./admin.html">🔒</a></div><small>©2014 - <span id="year"></span> MARÍLIAJÁ. Todos os direitos reservados. Desenvolvido por TOMSOFTWAR - tomsoftwar@gmail.com</small></div></footer><script type="module" src="./assets/js/public.js"></script>
 
-<script>
-function atualizarRelogio() {
-  const agora = new Date();
 
-  document.getElementById("relogio-mariliaja").textContent =
-    agora.toLocaleTimeString("pt-BR", {
+<script>
+(function () {
+  function atualizarRelogio() {
+    const relogio = document.getElementById("relogio-mariliaja");
+
+    if (!relogio) return;
+
+    const agora = new Date();
+
+    relogio.textContent = agora.toLocaleTimeString("pt-BR", {
       timeZone: "America/Sao_Paulo",
       hour: "2-digit",
       minute: "2-digit",
       second: "2-digit"
     });
-}
 
-atualizarRelogio();
-setInterval(atualizarRelogio, 1000);
+    relogio.style.display = "block";
+    relogio.style.visibility = "visible";
+  }
+
+  atualizarRelogio();
+  setInterval(atualizarRelogio, 1000);
+})();
 </script>
+</body>
+</html>
 
-</body></html>
