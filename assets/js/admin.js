@@ -6,7 +6,7 @@ import {
 import { initializeApp, deleteApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
 import {
   collection, doc, getDoc, getDocs, setDoc, deleteDoc,
-  serverTimestamp, query, orderBy, updateDoc
+  serverTimestamp, query, orderBy, updateDoc, where
 } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 
 const $ = s => document.querySelector(s);
@@ -328,9 +328,11 @@ async function recoverDraft(showMessage = true, draftId = null) {
       const snap = await getDoc(doc(db, "rascunhos", draftId));
       if (snap.exists()) d = snap.data();
     } else {
-      const snap = await getDocs(query(collection(db, "rascunhos"), orderBy("updatedAt", "desc")));
-      const mine = snap.docs.find(x => activeAdmin() || x.data().authorId === currentUser?.uid);
-      if (mine) { draftId = mine.id; d = mine.data(); }
+      const draftsQuery = activeAdmin()
+        ? query(collection(db, "rascunhos"), orderBy("updatedAt", "desc"))
+        : query(collection(db, "rascunhos"), where("authorId", "==", currentUser.uid), orderBy("updatedAt", "desc"));
+      const snap = await getDocs(draftsQuery);
+      if (snap.docs.length) { draftId = snap.docs[0].id; d = snap.docs[0].data(); }
     }
     if (!d) {
       try { const raw = localStorage.getItem(draftStorageKey()); if (raw) d = JSON.parse(raw); } catch {}
@@ -354,8 +356,11 @@ async function loadDraftsList() {
   const old = $("#drafts-list");
   if (!old || !currentUser) return;
   try {
-    const snap = await getDocs(query(collection(db, "rascunhos"), orderBy("updatedAt", "desc")));
-    const docs = snap.docs.filter(x => activeAdmin() || x.data().authorId === currentUser.uid);
+    const draftsQuery = activeAdmin()
+      ? query(collection(db, "rascunhos"), orderBy("updatedAt", "desc"))
+      : query(collection(db, "rascunhos"), where("authorId", "==", currentUser.uid), orderBy("updatedAt", "desc"));
+    const snap = await getDocs(draftsQuery);
+    const docs = snap.docs;
     old.innerHTML = docs.length ? docs.map(x => {
       const d=x.data();
       return `<div class="admin-news-item"><div><strong>${esc(d.title || "Rascunho sem título")}</strong><p>${esc(d.category || "Geral")} · Não publicado</p></div><button type="button" class="btn btn-light" data-draft-load="${esc(x.id)}">Continuar edição</button></div>`;
@@ -377,12 +382,10 @@ function scheduleDraftSave() {
 });
 content.addEventListener("input", scheduleDraftSave);
 $("#save-draft").addEventListener("click", () => saveDraft(true));
-$("#load-draft").addEventListener("click", () => recoverDraft(true));
 function resetForm() {
   form.reset(); $("#news-id").value = ""; content.innerHTML = ""; message(adminMsg, "");
   message(draftMsg, "Formulário limpo. O rascunho salvo continua disponível para recuperação.");
 }
-$("#clear-form").addEventListener("click", resetForm);
 form.addEventListener("submit", async e => {
   e.preventDefault();
   if (!currentUser || !currentProfile || currentProfile.ativo !== true) return message(adminMsg, "Entre novamente para publicar.", "error");
