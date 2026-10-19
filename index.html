@@ -1,11 +1,11 @@
 <!doctype html><html lang="pt-BR"><head><link rel="icon" type="image/png" href="./assets/images/favicon.png"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="MARÍLIAJÁ — notícias, informação e acontecimentos de Marília e região."><title>MARÍLIAJÁ | Notícias</title><link rel="stylesheet" href="./assets/css/style.css"><link rel="stylesheet" href="./assets/css/tv.css"></head><body>
-<header class="site-header"><div class="topline"><a class="brand" href="./">MARÍLIA<span>JÁ</span></a><span class="brand-tag">O Portal de Notícias de Marília e Região</span></div><header><h1>HORAS</h1>
-  <div id="relogio">--:--:--</header></div><nav class="nav"><a href="./">INÍCIO</a><a href="#noticias">NOTÍCIAS</a><a href="#Polícia">POLÍCIA</a><a href="#Política">POLÍTICA</a><a href="#Cidade">CIDADE</a><a href="#Variedades">VARIEDADES</a><a href="tv.html">TV MARÍLIAJÁ</a><a href="quem-somos.html">QUEM SOMOS</a><a href="contato.html">CONTATO</a></nav></header>
+<header class="site-header"><div class="topline"><a class="brand" href="./">MARÍLIA<span>JÁ</span></a><span class="brand-tag">O Portal de Notícias de Marília e Região</span></div><nav class="nav"><a href="./">INÍCIO</a><a href="#noticias">NOTÍCIAS</a><a href="#Polícia">POLÍCIA</a><a href="#Política">POLÍTICA</a><a href="#Cidade">CIDADE</a><a href="#Variedades">VARIEDADES</a><a href="tv.html">TV MARÍLIAJÁ</a><a href="quem-somos.html">QUEM SOMOS</a><a href="contato.html">CONTATO</a></nav></header>
 <main class="wrap"><div class="ad-slot ad-top"><span>PUBLICIDADE</span><strong>ESPAÇO PARA ANÚNCIO</strong></div>
 <section class="headline"><div><p class="eyebrow">JORNALISMO ONLINE</p><h1>MARÍLIAJÁ</h1><p class="lead">A notícia da nossa cidade e região na palma da sua mão.</p></div><div class="headline-info"><div class="date" id="today"></div>
 <div class="market-info">
   <span id="dollar">Dólar: consultando...</span>
   <span id="weather">Clima em Marília: consultando...</span>
+  <span id="relogio-mariliaja" aria-label="Horário de Marília">Horário de Marília: --:--:--</span>
 </div>
 </div>
 </section>
@@ -15,27 +15,5 @@
 <div class="ad-slot ad-bottom"><span>PUBLICIDADE</span><strong>ESPAÇO PARA ANÚNCIO</strong></div>
 </main><footer class="footer"><div class="wrap"><strong>MARÍLIAJÁ</strong><span>O Portal de Notícias de Marília e Região</span><div class="footer-links"><a href="quem-somos.html">Quem somos</a><a href="privacidade.html">Políticas de privacidade</a><a href="termos.html">Termos de uso</a><a href="contato.html">Contato</a><a href="./admin.html">🔒</a></div><small>©2014 - <span id="year"></span> MARÍLIAJÁ. Todos os direitos reservados. Desenvolvido por TOMSOFTWAR - tomsoftwar@gmail.com</small></div></footer><script type="module" src="./assets/js/public.js"></script>
 
-<script src="https://cdn.logwork.com/widget/text.js"></script>
-<a href="https://logwork.com/current-time-in-sao-paulo-brazil" class="clock-widget-text" data-timezone="America/Sao_Paulo" data-language="pt" data-textcolor="#ed0909" data-digitscolor="#050000">São Paulo, Brazil, São Paulo</a>
-<script>
-function atualizarRelogio() {
-  const agora = new Date();
-  const horas = String(agora.getHours()).padStart(2, '0');
-  const minutos = String(agora.getMinutes()).padStart(2, '0');
-  const segundos = String(agora.getSeconds()).padStart(2, '0');
-
-  document.getElementById('relogio').textContent = `${horas}:${minutos}:${segundos}`;
-}
-
-// Atualiza a cada 1000 milissegundos (1 segundo)
-setInterval(atualizarRelogio, 1000);
-
-// Executa uma vez logo ao carregar a página
-atualizarRelogio();
-
-</script>
 </body>
 </html>
-
-
-

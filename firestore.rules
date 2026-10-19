@@ -5,14 +5,36 @@ service cloud.firestore {
     function isAdmin() {
       return signedIn()
         && exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+        && get(/databases/$(database)/documents/admins/$(request.auth.uid)).data.ativo == true
+        && get(/databases/$(database)/documents/admins/$(request.auth.uid)).data.get('perfil', 'admin') == 'admin';
+    }
+    function isActiveUser() {
+      return signedIn()
+        && exists(/databases/$(database)/documents/admins/$(request.auth.uid))
         && get(/databases/$(database)/documents/admins/$(request.auth.uid)).data.ativo == true;
     }
     match /noticias/{newsId} {
       allow read: if true;
+      allow create: if isActiveUser();
+      allow delete: if isAdmin() || (isActiveUser() && resource.data.authorId == request.auth.uid);
+      allow update: if isAdmin()
+        || (isActiveUser() && resource.data.authorId == request.auth.uid)
+        || (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['views'])
+          && request.resource.data.views == resource.data.get('views', 0) + 1);
+    }
+    match /anuncios/{adId} {
+      allow read: if true;
       allow create, update, delete: if isAdmin();
     }
+    match /rascunhos/{draftId} {
+      allow read: if isAdmin() || (isActiveUser() && resource.data.authorId == request.auth.uid);
+      allow create: if isActiveUser() && (isAdmin() || request.resource.data.authorId == request.auth.uid);
+      allow update: if isAdmin() || (isActiveUser() && resource.data.authorId == request.auth.uid
+        && request.resource.data.authorId == request.auth.uid);
+      allow delete: if isAdmin() || (isActiveUser() && resource.data.authorId == request.auth.uid);
+    }
     match /admins/{adminId} {
-      allow read: if signedIn() && request.auth.uid == adminId;
+      allow read: if signedIn() && request.auth.uid == adminId || isAdmin();
       allow write: if false;
     }
   }
