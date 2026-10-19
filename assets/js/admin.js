@@ -416,7 +416,7 @@ form.addEventListener("submit", async e => {
     if (old && Object.prototype.hasOwnProperty.call(old, "authorId")) payload.authorId = old.authorId;
     else if (!old) payload.authorId = currentUser.uid;
     await setDoc(doc(db, "noticias", id), payload, { merge: true });
-    message(adminMsg, "Conteúdo salvo no banco e disponível aos visitantes.", "success");
+    message(adminMsg, "Notícia publicada e disponível aos visitantes.", "success");
     try { localStorage.removeItem(draftStorageKey()); } catch {}
     resetForm(); message(draftMsg, "Notícia publicada. O rascunho deste editor foi removido.", "success"); await loadAdminNews();
   } catch (err) {
@@ -436,7 +436,7 @@ async function loadAdminNews() {
       const x = d.data();
       const canManage = activeAdmin() || x.authorId === currentUser?.uid;
       return `<div class="admin-item"><div><strong>${esc(x.title || x.titulo || "Sem título")}</strong>
-        <small>${esc(x.category || x.categoria || "Geral")}${x.videoUrl ? " · vídeo" : ""}${activeAdmin() && x.authorSignature ? " · " + esc(x.authorSignature) : ""}</small></div>
+        <small>${esc(x.category || x.categoria || "Geral")}${x.videoUrl ? " · vídeo" : ""} · Visualizações: ${Number(x.views || x.visualizacoes || 0).toLocaleString("pt-BR")}${activeAdmin() && x.authorSignature ? " · " + esc(x.authorSignature) : ""}</small></div>
         <div class="admin-item-actions">${canManage ? `<button class="edit-btn" data-edit="${esc(d.id)}">Editar</button><button class="delete-btn" data-delete="${esc(d.id)}">Excluir</button>` : ""}</div></div>`;
     }).join("");
     box.querySelectorAll("[data-edit]").forEach(b => b.onclick = () => editNews(b.dataset.edit));
@@ -455,7 +455,7 @@ async function editNews(id) {
     $("#category").value = x.category || x.categoria || "Cidade"; $("#imageUrl").value = x.imageUrl || x.imagem || "";
     $("#imageCaption").value = x.imageCaption || x.legendaImagem || ""; $("#videoUrl").value = x.videoUrl || "";
     $("#featured").checked = !!(x.isFeatured || x.destaque);
-    form.scrollIntoView({ behavior: "smooth" }); message(adminMsg, "Editando conteúdo. Ao salvar, as alterações serão publicadas.", "success");
+    form.scrollIntoView({ behavior: "smooth" }); message(adminMsg, "Editando conteúdo. Use PUBLICAR para tornar as alterações visíveis ou SALVAR NOTÍCIA para guardar como rascunho.", "success");
   } catch (err) { console.error(err); message(adminMsg, "Não foi possível abrir para edição.", "error"); }
 }
 async function removeNews(id) {
