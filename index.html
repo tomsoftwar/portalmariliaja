@@ -17,29 +17,29 @@
 
 
 <script>
-(function () {
-  function atualizarRelogio() {
-    const relogio = document.getElementById("relogio-mariliaja");
+document.addEventListener("DOMContentLoaded", function () {
+  const relogio = document.getElementById("relogio-mariliaja");
 
-    if (!relogio) return;
+  if (!relogio) {
+    console.error("Relógio não encontrado no HTML.");
+    return;
+  }
 
-    const agora = new Date();
-
-    relogio.textContent = agora.toLocaleTimeString("pt-BR", {
+  function atualizar() {
+    relogio.textContent = new Intl.DateTimeFormat("pt-BR", {
       timeZone: "America/Sao_Paulo",
       hour: "2-digit",
       minute: "2-digit",
-      second: "2-digit"
-    });
-
-    relogio.style.display = "block";
-    relogio.style.visibility = "visible";
+      second: "2-digit",
+      hour12: false
+    }).format(new Date());
   }
 
-  atualizarRelogio();
-  setInterval(atualizarRelogio, 1000);
-})();
+  atualizar();
+  setInterval(atualizar, 1000);
+});
 </script>
 </body>
 </html>
+
 
