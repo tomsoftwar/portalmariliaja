@@ -330,9 +330,14 @@ async function recoverDraft(showMessage = true, draftId = null) {
     } else {
       const draftsQuery = activeAdmin()
         ? query(collection(db, "rascunhos"), orderBy("updatedAt", "desc"))
-        : query(collection(db, "rascunhos"), where("authorId", "==", currentUser.uid), orderBy("updatedAt", "desc"));
+        : query(collection(db, "rascunhos"), where("authorId", "==", currentUser.uid));
       const snap = await getDocs(draftsQuery);
-      if (snap.docs.length) { draftId = snap.docs[0].id; d = snap.docs[0].data(); }
+      const draftDocs = snap.docs.sort((a, b) => {
+        const av = a.data().updatedAt?.toMillis?.() || 0;
+        const bv = b.data().updatedAt?.toMillis?.() || 0;
+        return bv - av;
+      });
+      if (draftDocs.length) { draftId = draftDocs[0].id; d = draftDocs[0].data(); }
     }
     if (!d) {
       try { const raw = localStorage.getItem(draftStorageKey()); if (raw) d = JSON.parse(raw); } catch {}
@@ -358,9 +363,13 @@ async function loadDraftsList() {
   try {
     const draftsQuery = activeAdmin()
       ? query(collection(db, "rascunhos"), orderBy("updatedAt", "desc"))
-      : query(collection(db, "rascunhos"), where("authorId", "==", currentUser.uid), orderBy("updatedAt", "desc"));
+      : query(collection(db, "rascunhos"), where("authorId", "==", currentUser.uid));
     const snap = await getDocs(draftsQuery);
-    const docs = snap.docs;
+    const docs = snap.docs.sort((a, b) => {
+      const av = a.data().updatedAt?.toMillis?.() || 0;
+      const bv = b.data().updatedAt?.toMillis?.() || 0;
+      return bv - av;
+    });
     old.innerHTML = docs.length ? docs.map(x => {
       const d=x.data();
       return `<div class="admin-news-item"><div><strong>${esc(d.title || "Rascunho sem título")}</strong><p>${esc(d.category || "Geral")} · Não publicado</p></div><button type="button" class="btn btn-light" data-draft-load="${esc(x.id)}">Continuar edição</button></div>`;
