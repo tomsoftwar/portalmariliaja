@@ -5,7 +5,11 @@
 <div class="market-info">
   <span id="dollar">Dólar: consultando...</span>
   <span id="weather">Clima em Marília: consultando...</span>
-  <div id="relogio-mariliaja">00:00:00</div>
+  <header>
+  <h1>HORAS:</h1>
+  <div id="relogio">--:--:--</div>
+</header>
+
 </div>
 </div>
 </section>
@@ -17,43 +21,21 @@
 
 
 <script>
-(function () {
-  function iniciarRelogio() {
-    const relogio = document.getElementById("relogio-mariliaja");
+function atualizarRelogio() {
+  const agora = new Date();
+  const horas = String(agora.getHours()).padStart(2, '0');
+  const minutos = String(agora.getMinutes()).padStart(2, '0');
+  const segundos = String(agora.getSeconds()).padStart(2, '0');
 
-    if (!relogio) {
-      console.error("MARÍLIAJÁ: elemento do relógio não encontrado.");
-      return;
-    }
+  document.getElementById('relogio').textContent = `${horas}:${minutos}:${segundos}`;
+}
 
-    function atualizar() {
-      const agora = new Date();
+// Atualiza a cada 1000 milissegundos (1 segundo)
+setInterval(atualizarRelogio, 1000);
 
-      relogio.textContent = agora.toLocaleTimeString("pt-BR", {
-        timeZone: "America/Sao_Paulo",
-        hour: "2-digit",
-        minute: "2-digit",
-        second: "2-digit",
-        hour12: false
-      });
+// Executa uma vez logo ao carregar a página
+atualizarRelogio();
 
-      relogio.style.cssText =
-        "display:block!important;visibility:visible!important;" +
-        "opacity:1!important;color:#ffffff!important;" +
-        "font-size:20px!important;font-weight:bold!important;" +
-        "margin-top:8px!important;min-height:30px;";
-    }
-
-    atualizar();
-    setInterval(atualizar, 1000);
-  }
-
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", iniciarRelogio);
-  } else {
-    iniciarRelogio();
-  }
-})();
 </script>
 </body>
 </html>
